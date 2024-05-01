@@ -1,0 +1,116 @@
+%
+% To use this as a template for turning in your solutions, change the flag
+% \inclsolns from 0 to 1. Make sure you include macros.tex in the directory
+% containing this file. Edit the "author" and "collaborators" fields as
+% appropriate. Write your solutions where indicated.
+%
+
+\def\inclsolns{1}
+\documentclass[12pt]{article}
+
+\usepackage{fullpage}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{comment}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+
+\input{macros}
+
+\theoremstyle{definition}
+
+\ifnum\inclsolns=1
+\newenvironment{solution}{\paragraph{Solution.}}{}
+\else
+\newenvironment{solution}{}{}
+\excludecomment{solution}
+\fi
+
+
+\makeatletter
+\def\collaborators#1{\gdef\@collaborators{#1}}
+\def\@collaborators{\@latex@warning@no@line{No \noexpand\collaborators given}}
+\makeatother
+
+\author{Julie Ha}
+
+\begin{document}
+
+
+\begin{center}
+{\Large DS 592 Spring 2024}
+
+\bigskip
+
+{\Large Approximating the Permanent - Mark Jerrum and Alistair Sinclair}
+
+\smallskip
+
+\end{center}
+
+\section*{The ``Ratio'' Method}
+
+\begin{definition}
+	The \textbf{Knapsack} problem is defined as follows: given $a=(a_0,\dots, a_{n-1})\in\mathbb{N}^n$, $b\in\mathbb{N}$ find a vector $n$ of 0,1-vectors $x\in\{0,1\}^n$ satisfying the inequality $a\cdot x = \sum_{i=0}^{n-1}a_i x_i\leq b$. 
+\end{definition}
+The counting problem of Knapsack solutions is finding the number of solutions $N$ of 0,1-vectors that satisfy the Knapsack problem.
+
+\begin{example}
+	Let $a = \{1, 2, 3, 4, 5\}$, where the weight of $a_i = a[i]$. Let $b=11$. 
+\end{example}
+
+\subsection*{A naive attempt}
+A naive attempt of estimating the number of solutions is as follows: 
+\begin{enumerate}
+	\item\label{samplevector} Select a vector $x\in\{0,1\}^n$ uniformly at random. 
+	\item\label{testconiditon} If $a\cdot x \leq b$, return $2^n$. Otherwise, return 0. 
+	\item Repeat steps \ref{samplevector} - \ref{testconiditon} with sufficiently enough trials and take the mean of the results. 
+\end{enumerate}
+This method fails pretty badly. Consider the example $a=(1,\dots,1)$ and $b=n/3$. Even running a large number of trials will yield a mean of 0, even though the solution to Knapsack solutions is exponentially large. Here, the \textbf{variance} of this estimator is too large to be of any practical value. 
+
+\subsection*{Our Goal}
+The goal to our algorithm to achieve a fully polynomial randomized approximation scheme (FPRAS), defined as follows: 
+\begin{definition}
+	An algorithm $f$ is a \textbf{fully polynomial randomized approximation scheme} that takes 
+	JULIE: TODO FINISH 
+\end{definition}
+
+\subsection*{Using Markov Chain Monte Carlo}
+Let us try a new attempt by defining the following rules for the Markov chain:
+Let $\Omega=\{x\in\{0,1\}^n:a\cdot b\leq b\}$ be the state space. This state space is \textit{only Knapsack solutions}, as opposed to all possible vectors, including non-solutions. 
+\begin{enumerate}
+	\item At some state $x\in\{0,1\}^n$, stay at state $x$ with probability $\frac{1}{2}$. Otherwise,
+	\item Select an index $i$ from the range $0\leq i\leq n-1$. Update the current state $x$ to $x' = (x_0,\dots,x_{i-1}, 1-x_i, x_{i+1},\dots, x_{n-1})$. In other words, update $x$ to $x'$ by flipping the bit in index $i$ in $x$. 
+	\item If $a\cdot x'\leq b$, then update the current state $x$ to $x'$. Otherwise, stay at $x$.
+ \end{enumerate}
+Clearly, this is sampling from $\Omega$, but our goal is to estimate the size of $\Omega$. 
+
+\subsection*{Sampling to Estimating}
+Our goal is to estimate the number of all solutions to the Knapsack problem for some $b\in\mathbb{N}$. 
+Without loss of generality, assume that $a_0\leq a_1 \leq \dots \leq a_{n-1}$. 
+
+\begin{equation}
+	|\Omega(b)| = |\Omega(b_n)| = \frac{|\Omega(b_n)|}{|\Omega(b_{n-1})|} \times \frac{|\Omega(b_{n-1})|}{|\Omega(b_{n-2})|} \times \cdot \times \frac{|\Omega(b_{1})|}{|\Omega(b_{0})|} \times |\Omega(b_0)|
+\end{equation}
+
+So with our example, our equation would look as follows:
+\begin{example}
+	\begin{align}
+		|\Omega(11)| &= \frac{|\Omega(b_5)|}{|\Omega(b_4)|} \times \frac{|\Omega(b_4)|}{|\Omega(b_3)|} \times \frac{|\Omega(b_3)|}{|\Omega(b_2)|} \times \frac{|\Omega(b_2)|}{|\Omega(b_1)|} \times \frac{|\Omega(b_1)|}{|\Omega(b_0)|} \times |\Omega(0)| \\ 
+		&= \frac{|\Omega(\min(11,15))|}{|\Omega(\min(11,10))|} \times \frac{|\Omega(\min(11,10))|}{|\Omega(\min(11,6))|} \times \frac{|\Omega(\min(11,6))|}{|\Omega(\min(11,3))|} \times \frac{|\Omega(\min(11,3))|}{|\Omega(\min(11,1))|}\\
+		& \qquad \qquad \times \frac{|\Omega(\min(11,1))|}{|\Omega(\min(11,0))|} \times |\Omega(0)|\\ 
+		&= \frac{|\Omega(11)|}{|\Omega(10)|} \times \frac{|\Omega(10)|}{|\Omega(6)|} \times \frac{|\Omega(6)|}{|\Omega(3)|} \times \frac{|\Omega(3)|}{|\Omega(1)|} \times \frac{|\Omega(1)|}{|\Omega(0)|} \times |\Omega(0)|
+	\end{align}
+\end{example}
+
+\subsection*{Is this an FPRAS?}
+Recall our goal is to create an FPRAS for estimating the number of Knapsack solutions. This method is FPRAS for the number of Knapsack solutions \textit{if the Markov chain is ``rapidly mixing''}. \textit{This is unknown}. 
+However, Jerrum-Sinclair show that the Markov chain for estimating the permanent by estimating matchings with bipartite graphs. 
+
+\end{document}
+
+
+
+
+
+
